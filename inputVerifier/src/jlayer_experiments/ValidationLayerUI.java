@@ -1,13 +1,19 @@
 package jlayer_experiments;
 
+import java.awt.AWTEvent;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
+
+import java.awt.event.MouseEvent;
 
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLayer;
+import javax.swing.SwingUtilities;
 
 import javax.swing.plaf.LayerUI;
 
@@ -22,9 +28,11 @@ import javax.swing.plaf.LayerUI;
  */
 public class ValidationLayerUI extends LayerUI<JFormattedTextField>
 {
+   private static final int ERR_SQ_LEN = 8;
    private static final int ERR_SQ_OFFSET = 2;
 
    private String tooltipText;
+   private Point mouse;
    
    public ValidationLayerUI(String text)
    {
@@ -45,6 +53,31 @@ public class ValidationLayerUI extends LayerUI<JFormattedTextField>
    public String getTooltip()
    {
       return this.tooltipText;
+   }
+
+   @Override
+   public void installUI(JComponent c)
+   {
+      super.installUI(c);
+
+      JLayer layer = (JLayer)c;
+      layer.setLayerEventMask(AWTEvent.MOUSE_MOTION_EVENT_MASK);
+   }
+
+   @Override
+   public void uninstallUI(JComponent c)
+   {
+      JLayer layer = (JLayer)c;
+      layer.setLayerEventMask(0);
+
+      super.uninstallUI(c);
+   }
+
+   @Override
+   protected void processMouseMotionEvent(MouseEvent evt, JLayer layer)
+   {
+      this.mouse = SwingUtilities.convertPoint(evt.getComponent(), evt.getPoint(), layer);
+      layer.repaint();
    }
 
    @Override
@@ -82,6 +115,17 @@ public class ValidationLayerUI extends LayerUI<JFormattedTextField>
          g2d.drawLine(x+ERR_SQ_LEN-1, y+1, x+1, y+ERR_SQ_LEN-1);
 
          g2d.dispose();
+
+         // Set the tooltip if the mouse point intersects the error box
+         Rectangle bounds = new Rectangle(x, y, ERR_SQ_LEN, ERR_SQ_LEN);
+         if(mouse != null && bounds.contains(mouse))
+            field.setToolTipText(this.tooltipText);
+         else
+            field.setToolTipText(null);
+      }
+      else
+      {
+         field.setToolTipText(null);
       }
    }
 }
